@@ -1,0 +1,23 @@
+/* Base project resets and custom utility classes */
+:root {
+	--clinic-green: #1b522f;
+	--clinic-green-dark: #154225;
+	--clinic-green-light: #428859;
+	--clinic-green-accent: #8fd3a2;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+::-webkit-scrollbar-thumb {
+	background: rgba(27, 82, 47, 0.2);
+	border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+	background: rgba(27, 82, 47, 0.4);
+}

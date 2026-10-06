@@ -1,0 +1,28 @@
+@import 'tailwindcss';
+
+@theme {
+	--color-clinic-green: #1b522f;
+	--color-clinic-green-dark: #154225;
+	--color-clinic-green-light: #428859;
+	--color-clinic-green-subtle: #f4f9f6;
+	--color-clinic-green-accent: #8fd3a2;
+}
+
+body {
+	font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+	background-color: #f7f7f7;
+	color: #1f2937;
+}
+
+/* Custom Input Autofill styling to match clean design */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+	-webkit-box-shadow: 0 0 0 30px white inset !important;
+}
+
+/* Smooth transitions */
+* {
+	-webkit-tap-highlight-color: transparent;
+}
