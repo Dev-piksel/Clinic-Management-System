@@ -1,28 +1,50 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { clinicStore, demoAccounts } from '#lib/state.svelte';
+	import { clinicStore } from '#lib/state.svelte';
+	import { loginWithApi, checkBackendHealth } from '#lib/api';
+	import { onMount } from 'svelte';
 
-	let studentIdInput = $state(clinicStore.currentUser.studentId);
-	let passwordInput = $state('••••••••');
+	let studentIdInput = $state('');
+	let passwordInput = $state('');
 	let showPassword = $state(false);
 	let errorMessage = $state('');
+	let isSubmitting = $state(false);
+	let backendOnline = $state<boolean | null>(null);
 
-	function handleSelectDemo(accId: string) {
-		clinicStore.selectAccount(accId);
-		studentIdInput = clinicStore.currentUser.studentId;
-		passwordInput = '••••••••';
-		errorMessage = '';
-	}
+	onMount(async () => {
+		const health = await checkBackendHealth();
+		backendOnline = health !== null;
+	});
 
-	function handleSignIn(e: SubmitEvent) {
+	async function handleSignIn(e: SubmitEvent) {
 		e.preventDefault();
 		if (!studentIdInput.trim()) {
-			errorMessage = 'Please enter your Student ID or select a demo account.';
+			errorMessage = 'Please enter your Student ID or Email.';
 			return;
 		}
 
-		clinicStore.login(clinicStore.selectedAccountId);
-		goto('/dashboard');
+		if (!passwordInput.trim()) {
+			errorMessage = 'Please enter your password.';
+			return;
+		}
+
+		isSubmitting = true;
+		errorMessage = '';
+
+		try {
+			// Attempt login via FastAPI backend with SQLite
+			const authRes = await loginWithApi(studentIdInput.trim(), passwordInput);
+			clinicStore.setCurrentUser(authRes.user);
+			goto('/dashboard');
+		} catch (err: any) {
+			if (err?.message && (err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+				errorMessage = 'Cannot connect to authentication service. Please ensure the backend server is running.';
+			} else {
+				errorMessage = err?.message || 'Failed to sign in. Please check your credentials.';
+			}
+		} finally {
+			isSubmitting = false;
+		}
 	}
 </script>
 
@@ -95,9 +117,22 @@
 			
 			<!-- Headers -->
 			<div>
-				<p class="text-[10px] font-bold tracking-[0.15em] text-[#1b522f] uppercase mb-1.5">
-					WELCOME BACK
-				</p>
+				<div class="flex items-center justify-between mb-1.5">
+					<p class="text-[10px] font-bold tracking-[0.15em] text-[#1b522f] uppercase">
+						WELCOME BACK
+					</p>
+					{#if backendOnline === true}
+						<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
+							<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+							SQLite Auth Online
+						</span>
+					{:else if backendOnline === false}
+						<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200" title="Start backend with npm run backend:dev">
+							<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+							Demo Mode
+						</span>
+					{/if}
+				</div>
 				<h3 class="text-3xl sm:text-4xl font-normal text-gray-900 tracking-tight">
 					Sign in to CSHMS
 				</h3>
@@ -107,12 +142,24 @@
 			</div>
 
 			{#if errorMessage}
-				<div class="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center space-x-2">
-					<svg class="w-4 h-4 text-red-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-						<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-					</svg>
-					<span>{errorMessage}</span>
-				</div>
+				{#if errorMessage.toLowerCase().includes('pending')}
+					<div class="p-4 bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded-2xl flex items-start space-x-3 shadow-2xs">
+						<svg class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+						</svg>
+						<div class="space-y-1">
+							<p class="font-bold text-amber-900">Account Pending Administrator Approval</p>
+							<p class="text-amber-800 leading-relaxed">{errorMessage}</p>
+						</div>
+					</div>
+				{:else}
+					<div class="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center space-x-2">
+						<svg class="w-4 h-4 text-red-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+							<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+						</svg>
+						<span>{errorMessage}</span>
+					</div>
+				{/if}
 			{/if}
 
 			<!-- Form -->
@@ -179,68 +226,43 @@
 				<!-- Submit Button (Sign in >) -->
 				<button
 					type="submit"
-					class="w-full bg-[#1b522f] hover:bg-[#154225] text-white font-medium py-3.5 sm:py-4 rounded-2xl text-sm flex justify-center items-center space-x-2 transition-all cursor-pointer shadow-xs active:scale-[0.99] pt-2"
+					disabled={isSubmitting}
+					class="w-full bg-[#1b522f] hover:bg-[#154225] disabled:opacity-75 disabled:cursor-not-allowed text-white font-medium py-3.5 sm:py-4 rounded-2xl text-sm flex justify-center items-center space-x-2 transition-all cursor-pointer shadow-xs active:scale-[0.99] pt-2"
 				>
-					<span>Sign in</span>
-					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-					</svg>
+					{#if isSubmitting}
+						<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+						</svg>
+						<span>Signing in...</span>
+					{:else}
+						<span>Sign in</span>
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+						</svg>
+					{/if}
 				</button>
+
+				<!-- Register Link -->
+				<div class="text-center pt-2">
+					<p class="text-xs text-gray-500">
+						Don't have an account?
+						<a href="/register" class="font-semibold text-[#1b522f] hover:underline ml-1">Create an account</a>
+					</p>
+				</div>
 			</form>
 
-			<!-- Divider -->
-			<div class="relative flex items-center justify-center py-2">
-				<div class="absolute inset-0 flex items-center">
-					<div class="w-full border-t border-gray-150"></div>
-				</div>
-				<span class="relative px-4 text-[11px] text-gray-400 bg-white font-medium select-none">
-					Preview a demo account
-				</span>
-			</div>
-
-			<!-- Demo Accounts (2x2 Grid) -->
-			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-				{#each demoAccounts as acc (acc.id)}
-					{@const isSelected = clinicStore.selectedAccountId === acc.id}
-					<button
-						type="button"
-						onclick={() => handleSelectDemo(acc.id)}
-						class="text-left p-3.5 rounded-2xl flex items-center justify-between cursor-pointer transition-all border {isSelected
-							? 'border-2 border-[#1b522f]/30 bg-[#edf7f0]/60 shadow-2xs'
-							: 'border-gray-200/90 hover:border-gray-300 bg-white hover:bg-gray-50'}"
-					>
-						<div class="flex items-center space-x-3 overflow-hidden">
-							<div
-								class="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 shadow-2xs"
-								style="background-color: {acc.avatarBg}; color: {acc.avatarColor};"
-							>
-								{acc.initials}
-							</div>
-							<div class="truncate">
-								<p class="text-xs font-bold text-gray-800 truncate">{acc.name}</p>
-								<p class="text-[11px] text-gray-400 truncate mt-0.5">{acc.role}</p>
-							</div>
-						</div>
-
-						{#if isSelected}
-							<svg class="w-4 h-4 text-[#1b522f] shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
-							</svg>
-						{/if}
-					</button>
-				{/each}
-			</div>
-
-			<!-- Footer Notes -->
-			<div class="space-y-3 pt-1 text-center">
-				<p class="text-[11px] text-gray-400 select-none">
-					Select an account, then sign in. No password is needed for this prototype.
-				</p>
+			<!-- Security Footer Note -->
+			<div class="pt-6 text-center space-y-2">
 				<div class="flex items-center justify-center space-x-1.5 text-gray-400 select-none text-[11px]">
 					<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
 					</svg>
 					<span>Your health information is private and protected.</span>
+				</div>
+				<div class="text-[11px] text-gray-400">
+					By using this system, you agree to the
+					<a href="/terms" class="font-semibold text-[#1b522f] hover:underline ml-0.5">Terms and Conditions</a>
 				</div>
 			</div>
 

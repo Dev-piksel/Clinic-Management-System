@@ -1,0 +1,12 @@
+node_modules
+.DS_Store
+Thumbs.db
+*.log
+.svelte-kit
+build
+.env
+.env.*
+__pycache__/
+*.py[cod]
+*$py.class
+backend/clinic.db

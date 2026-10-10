@@ -18,6 +18,10 @@ export interface DemoAccount {
 	emergencyRelationship: string;
 	emergencyContact: string;
 	preferredContactMethod: string;
+	status?: 'pending' | 'approved' | 'rejected';
+	termsAccepted?: boolean;
+	termsAcceptedAt?: string;
+	createdAt?: string;
 }
 
 export interface FirstAidReport {

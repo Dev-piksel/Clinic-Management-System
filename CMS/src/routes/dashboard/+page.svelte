@@ -516,6 +516,48 @@
 				</div>
 			</div>
 
+			<!-- Emergency Contact Card (Student Side) -->
+			<div class="lg:col-span-12 bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-xs">
+				<div class="flex items-center justify-between mb-3">
+					<div class="flex items-center space-x-2.5">
+						<div class="w-8 h-8 rounded-xl bg-emerald-50 text-[#1b522f] flex items-center justify-center">
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+							</svg>
+						</div>
+						<div>
+							<h3 class="text-sm font-bold text-gray-800">Emergency Contact Information</h3>
+							<p class="text-[11px] text-gray-400">Used by the school clinic during emergency health interventions</p>
+						</div>
+					</div>
+					<a href="/profile" class="text-xs font-semibold text-[#1b522f] hover:underline flex items-center gap-1">
+						<span>Edit details</span>
+						<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+						</svg>
+					</a>
+				</div>
+
+				<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-100">
+					<div class="p-3.5 bg-[#fbfcfc] rounded-2xl border border-gray-100">
+						<p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Contact Person</p>
+						<p class="text-sm font-bold text-gray-800 mt-1">{clinicStore.currentUser.emergencyPerson || 'None specified'}</p>
+					</div>
+					<div class="p-3.5 bg-[#fbfcfc] rounded-2xl border border-gray-100">
+						<p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Relationship</p>
+						<p class="text-sm font-bold text-gray-800 mt-1">{clinicStore.currentUser.emergencyRelationship || 'None specified'}</p>
+					</div>
+					<div class="p-3.5 bg-[#fbfcfc] rounded-2xl border border-gray-100">
+						<p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Emergency Phone</p>
+						<p class="text-sm font-bold text-[#1b522f] mt-1">{clinicStore.currentUser.emergencyContact || 'None specified'}</p>
+					</div>
+					<div class="p-3.5 bg-[#fbfcfc] rounded-2xl border border-gray-100">
+						<p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Preferred Contact</p>
+						<p class="text-sm font-bold text-gray-800 mt-1">{clinicStore.currentUser.preferredContactMethod || 'Phone call'}</p>
+					</div>
+				</div>
+			</div>
+
 		</div>
 	</div>
 {/if}

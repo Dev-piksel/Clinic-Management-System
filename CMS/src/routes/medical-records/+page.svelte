@@ -1,16 +1,33 @@
 <script lang="ts">
-	import { demoAccounts, clinicStore } from '#lib/state.svelte';
+	import { clinicStore } from '#lib/state.svelte';
+	import { fetchAdminUsers } from '#lib/api';
+	import type { DemoAccount } from '#lib/types';
+	import { onMount } from 'svelte';
 
 	let searchQuery = $state('');
-	let selectedStudentId = $state('faith-manada');
+	let studentsList = $state<DemoAccount[]>([]);
+	let selectedStudentId = $state('');
 	let showExportModal = $state(false);
 	let showFullRecordModal = $state(false);
 	let isExporting = $state(false);
+	let isLoading = $state(true);
 
-	let studentsList = $derived(demoAccounts.filter((a) => a.category === 'student'));
+	onMount(async () => {
+		try {
+			const users = await fetchAdminUsers('approved');
+			studentsList = users.filter((a) => a.category === 'student');
+			if (studentsList.length > 0) {
+				selectedStudentId = studentsList[0].id;
+			}
+		} catch (err) {
+			console.warn('Failed to load students in medical records', err);
+		} finally {
+			isLoading = false;
+		}
+	});
 
 	let activeStudent = $derived(
-		demoAccounts.find((a) => a.id === selectedStudentId) || studentsList[0]
+		studentsList.find((a) => a.id === selectedStudentId) || (studentsList.length > 0 ? studentsList[0] : null)
 	);
 
 	function handleSearchInput() {
@@ -89,41 +106,59 @@
 		</div>
 	</div>
 
-	<!-- Student Switcher Chips -->
-	<div class="flex items-center space-x-2 overflow-x-auto pb-1 text-xs">
-		<span class="text-gray-400 shrink-0 font-medium">Quick switch:</span>
-		{#each studentsList as s}
-			<button
-				type="button"
-				onclick={() => { selectedStudentId = s.id; searchQuery = s.name; }}
-				class="px-3 py-1.5 rounded-full border transition-colors cursor-pointer shrink-0 {selectedStudentId === s.id
-					? 'bg-[#edf7f0] text-[#1b522f] border-[#1b522f]/30 font-semibold'
-					: 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}"
-			>
-				{s.name} ({s.studentId})
-			</button>
-		{/each}
-	</div>
+	{#if isLoading}
+		<div class="bg-white rounded-3xl p-12 text-center border border-gray-100 shadow-xs space-y-3">
+			<div class="w-8 h-8 border-2 border-[#1b522f] border-t-transparent rounded-full animate-spin mx-auto"></div>
+			<p class="text-xs text-gray-400">Loading medical records directory...</p>
+		</div>
+	{:else if studentsList.length === 0 || !activeStudent}
+		<div class="bg-white rounded-3xl p-12 text-center border border-gray-100 shadow-xs space-y-3">
+			<div class="w-12 h-12 bg-gray-100 text-gray-400 rounded-2xl mx-auto flex items-center justify-center">
+				<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+				</svg>
+			</div>
+			<h3 class="text-base font-bold text-gray-800">No student medical records yet</h3>
+			<p class="text-xs text-gray-500 max-w-sm mx-auto">
+				Approved student accounts will have their clinical charts and medical records available here.
+			</p>
+		</div>
+	{:else}
+		<!-- Student Switcher Chips -->
+		<div class="flex items-center space-x-2 overflow-x-auto pb-1 text-xs">
+			<span class="text-gray-400 shrink-0 font-medium">Quick switch:</span>
+			{#each studentsList as s}
+				<button
+					type="button"
+					onclick={() => { selectedStudentId = s.id; searchQuery = s.name; }}
+					class="px-3 py-1.5 rounded-full border transition-colors cursor-pointer shrink-0 {selectedStudentId === s.id
+						? 'bg-[#edf7f0] text-[#1b522f] border-[#1b522f]/30 font-semibold'
+						: 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}"
+				>
+					{s.name} ({s.studentId})
+				</button>
+			{/each}
+		</div>
 
-	<!-- Main Details & Timeline Grid (Matching Image 3) -->
-	<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-		
-		<!-- Left Card: Student Info -->
-		<div class="lg:col-span-7 bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-xs space-y-6">
-			<!-- Header -->
-			<div class="flex items-start justify-between pb-6 border-b border-gray-100">
-				<div class="flex items-center space-x-4">
-					<div
-						class="w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-base shrink-0 shadow-2xs"
-						style="background-color: {activeStudent.avatarBg}; color: {activeStudent.avatarColor};"
-					>
-						{activeStudent.initials}
+		<!-- Main Details & Timeline Grid (Matching Image 3) -->
+		<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+			
+			<!-- Left Card: Student Info -->
+			<div class="lg:col-span-7 bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-xs space-y-6">
+				<!-- Header -->
+				<div class="flex items-start justify-between pb-6 border-b border-gray-100">
+					<div class="flex items-center space-x-4">
+						<div
+							class="w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-base shrink-0 shadow-2xs"
+							style="background-color: {activeStudent.avatarBg || '#edf7f0'}; color: {activeStudent.avatarColor || '#1b522f'};"
+						>
+							{activeStudent.initials}
+						</div>
+						<div>
+							<h2 class="text-xl font-bold text-gray-800">{activeStudent.name}</h2>
+							<p class="text-xs text-gray-400 mt-0.5">Student No. {activeStudent.studentId}</p>
+						</div>
 					</div>
-					<div>
-						<h2 class="text-xl font-bold text-gray-800">{activeStudent.name}</h2>
-						<p class="text-xs text-gray-400 mt-0.5">Student No. {activeStudent.studentId}</p>
-					</div>
-				</div>
 
 				<span class="px-3 py-1 rounded-full text-xs font-semibold bg-[#edf7f0] text-[#1b522f] border border-[#1b522f]/20">
 					Active
@@ -231,10 +266,11 @@
 		</div>
 
 	</div>
+	{/if}
 </div>
 
 <!-- ================= EXPORT PDF MODAL ================= -->
-{#if showExportModal}
+{#if showExportModal && activeStudent}
 	<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
 		<div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto space-y-6">
 			<!-- Modal Header -->
@@ -367,7 +403,7 @@
 {/if}
 
 <!-- ================= FULL CLINICAL RECORD MODAL ================= -->
-{#if showFullRecordModal}
+{#if showFullRecordModal && activeStudent}
 	<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
 		<div class="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto space-y-6">
 			<div class="flex items-start justify-between pb-4 border-b border-gray-100">

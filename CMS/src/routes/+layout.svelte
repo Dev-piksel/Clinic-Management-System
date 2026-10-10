@@ -2,18 +2,63 @@
 	import './layout.css';
 	import '../app.css';
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
+	import { clinicStore } from '#lib/state.svelte';
+	import { fetchCurrentUser, getStoredToken } from '#lib/api';
 	import Sidebar from '#lib/components/Sidebar.svelte';
 	import TopHeader from '#lib/components/TopHeader.svelte';
 	import type { LayoutProps } from './$types';
+	import { onMount } from 'svelte';
 
 	let { children }: LayoutProps = $props();
 
-	// Check if on login/sign-in page
+	// Check if on public auth page
 	let isAuthPage = $derived(
 		page.url.pathname === '/' ||
 		page.url.pathname.startsWith('/sign-in') ||
-		page.url.pathname.startsWith('/login')
+		page.url.pathname.startsWith('/login') ||
+		page.url.pathname.startsWith('/register') ||
+		page.url.pathname.startsWith('/terms')
 	);
+
+	let isCheckingAuth = $state(true);
+
+	onMount(async () => {
+		const token = getStoredToken();
+		if (token) {
+			try {
+				const user = await fetchCurrentUser();
+				if (user) {
+					clinicStore.setCurrentUser(user);
+					if (page.url.pathname === '/' || page.url.pathname === '/login' || page.url.pathname === '/register') {
+						goto('/dashboard');
+					}
+				} else {
+					clinicStore.logout();
+					if (!isAuthPage) {
+						goto('/');
+					}
+				}
+			} catch {
+				clinicStore.logout();
+				if (!isAuthPage) {
+					goto('/');
+				}
+			}
+		} else {
+			clinicStore.logout();
+			if (!isAuthPage) {
+				goto('/');
+			}
+		}
+		isCheckingAuth = false;
+	});
+
+	$effect(() => {
+		if (!isCheckingAuth && !clinicStore.isLoggedIn && !isAuthPage) {
+			goto('/');
+		}
+	});
 </script>
 
 <svelte:head>

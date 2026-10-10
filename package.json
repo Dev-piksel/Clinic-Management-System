@@ -1,0 +1,14 @@
+{
+  "name": "clinic-management-system",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev --prefix CMS",
+    "build": "npm run build --prefix CMS",
+    "preview": "npm run preview --prefix CMS",
+    "check": "npm run check --prefix CMS",
+    "check:watch": "npm run check:watch --prefix CMS",
+    "backend:dev": "uvicorn backend.main:app --reload --port 8000",
+    "backend:start": "uvicorn backend.main:app --port 8000"
+  }
+}

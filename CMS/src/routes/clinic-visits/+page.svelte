@@ -1,14 +1,31 @@
 <script lang="ts">
-	import { clinicStore, demoAccounts } from '#lib/state.svelte';
+	import { clinicStore } from '#lib/state.svelte';
+	import { fetchAdminUsers } from '#lib/api';
+	import type { DemoAccount } from '#lib/types';
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 
 	let isStaff = $derived(clinicStore.currentUser.category === 'staff');
 
 	// ================= STAFF NEW CLINIC VISIT STATE =================
 	let staffView = $state<'new' | 'history'>('new');
+	let studentsList = $state<DemoAccount[]>([]);
 
-	let selectedStudentName = $state('Faith Manada');
-	let selectedStudentId = $state('202611399 · BSIT 4A');
+	let selectedStudentName = $state('Walk-in Student');
+	let selectedStudentId = $state('Unassigned');
+
+	onMount(async () => {
+		try {
+			const users = await fetchAdminUsers('approved');
+			studentsList = users.filter((u) => u.category === 'student');
+			if (studentsList.length > 0) {
+				selectedStudentName = studentsList[0].name;
+				selectedStudentId = `${studentsList[0].studentId} · ${studentsList[0].programStrand} ${studentsList[0].yearSection}`;
+			}
+		} catch {
+			// silent fallback
+		}
+	});
 	let selectedVisitType = $state('Walk-in');
 	let selectedConcern = $state('Headache');
 	let selectedAssessment = $state('Mild');
@@ -145,21 +162,52 @@
 							</div>
 						</div>
 
-						<!-- Student Card (Faith Manada) -->
-						<div class="bg-[#f4f9f6] border border-[#1b522f]/20 rounded-2xl p-4 flex items-center justify-between cursor-pointer">
-							<div class="flex items-center space-x-3.5">
-								<div class="w-10 h-10 rounded-full bg-[#8fd3a2] text-[#1b522f] flex items-center justify-center font-bold text-xs shrink-0">
-									FM
+						<!-- Student Selection -->
+						{#if studentsList.length > 0}
+							<div>
+								<label for="visit-student-select" class="block text-xs font-semibold text-gray-700 mb-1.5">Select Enrolled Student</label>
+								<select
+									id="visit-student-select"
+									onchange={(e) => {
+										const found = studentsList.find((s) => s.id === e.currentTarget.value);
+										if (found) {
+											selectedStudentName = found.name;
+											selectedStudentId = `${found.studentId} · ${found.programStrand} ${found.yearSection}`;
+										}
+									}}
+									class="w-full px-3.5 py-3 rounded-2xl border border-gray-200 text-xs sm:text-sm bg-white font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#1b522f]/20"
+								>
+									{#each studentsList as s}
+										<option value={s.id}>{s.name} ({s.studentId} - {s.programStrand} {s.yearSection})</option>
+									{/each}
+								</select>
+							</div>
+						{:else}
+							<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+								<div>
+									<label for="visit-student-name-input" class="block text-xs font-semibold text-gray-700 mb-1">Student Name</label>
+									<input
+										id="visit-student-name-input"
+										type="text"
+										bind:value={selectedStudentName}
+										placeholder="e.g. Student Name"
+										class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-800"
+									/>
 								</div>
 								<div>
-									<p class="text-sm font-bold text-gray-800">Faith Manada</p>
-									<p class="text-xs text-gray-400 mt-0.5">202611399 · BSIT 4A</p>
+									<label for="visit-student-id-input" class="block text-xs font-semibold text-gray-700 mb-1">Student ID (Numbers only)</label>
+									<input
+										id="visit-student-id-input"
+										type="text"
+										inputmode="numeric"
+										pattern="[0-9]*"
+										bind:value={selectedStudentId}
+										placeholder="e.g. 202611000"
+										class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-800"
+									/>
 								</div>
 							</div>
-							<svg class="w-4 h-4 text-[#1b522f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
-							</svg>
-						</div>
+						{/if}
 
 						<!-- Visit Type Chips -->
 						<div class="grid grid-cols-3 gap-3">
