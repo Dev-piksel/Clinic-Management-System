@@ -1,4 +1,4 @@
-import type { DemoAccount } from './types';
+import type { DemoAccount, AuditLogItem, AdminCreateUserPayload, AdminUpdateUserPayload } from './types';
 
 const API_BASE = 'http://localhost:8000';
 
@@ -26,6 +26,7 @@ export interface RegisterPayload {
 	emergency_contact?: string;
 	preferred_contact_method?: string;
 	terms_accepted?: boolean;
+	staff_passkey?: string;
 }
 
 export function getStoredToken(): string | null {
@@ -161,9 +162,94 @@ export async function deleteUser(userId: string): Promise<void> {
 }
 
 export async function fetchAdminStats(): Promise<{ total: number; pending: number; approved: number; rejected: number }> {
-	const res = await fetch(`${API_BASE}/api/admin/stats`);
+	const token = getStoredToken();
+	const headers: Record<string, string> = {};
+	if (token) headers['Authorization'] = `Bearer ${token}`;
+
+	const res = await fetch(`${API_BASE}/api/admin/stats`, { headers });
 	if (!res.ok) {
 		throw new Error('Failed to fetch admin stats');
+	}
+	return await res.json();
+}
+
+export async function createUserByAdmin(payload: AdminCreateUserPayload): Promise<DemoAccount> {
+	const token = getStoredToken();
+	const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+	if (token) headers['Authorization'] = `Bearer ${token}`;
+
+	const res = await fetch(`${API_BASE}/api/admin/users`, {
+		method: 'POST',
+		headers,
+		body: JSON.stringify(payload)
+	});
+
+	if (!res.ok) {
+		const err = await res.json().catch(() => ({ detail: 'Failed to create user' }));
+		throw new Error(err.detail || 'Failed to create user');
+	}
+	return await res.json();
+}
+
+export async function updateUserByAdmin(userId: string, payload: AdminUpdateUserPayload): Promise<DemoAccount> {
+	const token = getStoredToken();
+	const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+	if (token) headers['Authorization'] = `Bearer ${token}`;
+
+	const res = await fetch(`${API_BASE}/api/admin/users/${encodeURIComponent(userId)}`, {
+		method: 'PUT',
+		headers,
+		body: JSON.stringify(payload)
+	});
+
+	if (!res.ok) {
+		const err = await res.json().catch(() => ({ detail: 'Failed to update user' }));
+		throw new Error(err.detail || 'Failed to update user');
+	}
+	return await res.json();
+}
+
+export async function resetUserPasswordByAdmin(userId: string, newPassword: string): Promise<{ message: string; success: boolean }> {
+	const token = getStoredToken();
+	const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+	if (token) headers['Authorization'] = `Bearer ${token}`;
+
+	const res = await fetch(`${API_BASE}/api/admin/users/${encodeURIComponent(userId)}/reset-password`, {
+		method: 'POST',
+		headers,
+		body: JSON.stringify({ new_password: newPassword })
+	});
+
+	if (!res.ok) {
+		const err = await res.json().catch(() => ({ detail: 'Failed to reset password' }));
+		throw new Error(err.detail || 'Failed to reset password');
+	}
+	return await res.json();
+}
+
+export async function fetchAuditLogs(filters?: {
+	limit?: number;
+	offset?: number;
+	action?: string;
+	category?: string;
+	search?: string;
+}): Promise<AuditLogItem[]> {
+	const token = getStoredToken();
+	const headers: Record<string, string> = {};
+	if (token) headers['Authorization'] = `Bearer ${token}`;
+
+	const params = new URLSearchParams();
+	if (filters?.limit) params.set('limit', String(filters.limit));
+	if (filters?.offset) params.set('offset', String(filters.offset));
+	if (filters?.action && filters.action !== 'all') params.set('action', filters.action);
+	if (filters?.category && filters.category !== 'all') params.set('category', filters.category);
+	if (filters?.search?.trim()) params.set('search', filters.search.trim());
+
+	const queryStr = params.toString() ? `?${params.toString()}` : '';
+	const res = await fetch(`${API_BASE}/api/admin/audit-logs${queryStr}`, { headers });
+
+	if (!res.ok) {
+		throw new Error('Failed to fetch audit logs');
 	}
 	return await res.json();
 }

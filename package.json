@@ -9,6 +9,7 @@
     "check": "npm run check --prefix CMS",
     "check:watch": "npm run check:watch --prefix CMS",
     "backend:dev": "uvicorn backend.main:app --reload --port 8000",
-    "backend:start": "uvicorn backend.main:app --port 8000"
+    "backend:start": "uvicorn backend.main:app --port 8000",
+    "admin:create": "python3 -m backend.create_admin"
   }
 }

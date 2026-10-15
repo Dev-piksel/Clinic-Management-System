@@ -57,6 +57,11 @@
 	$effect(() => {
 		if (!isCheckingAuth && !clinicStore.isLoggedIn && !isAuthPage) {
 			goto('/');
+		} else if (!isCheckingAuth && clinicStore.isLoggedIn) {
+			// RBAC Route Guard: prevent students from accessing /admin paths
+			if (page.url.pathname.startsWith('/admin') && clinicStore.currentUser.category !== 'staff') {
+				goto('/dashboard');
+			}
 		}
 	});
 </script>

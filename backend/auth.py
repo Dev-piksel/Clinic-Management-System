@@ -96,3 +96,20 @@ def get_current_user(
         )
 
     return row_to_user_response(user_row)
+
+
+def require_staff(
+    current_user: UserResponse = Depends(get_current_user)
+) -> UserResponse:
+    """RBAC Guard: Enforces that the current authenticated user has staff or admin privileges."""
+    is_staff = (
+        current_user.category == "staff"
+        or current_user.role in ("Clinic Administrator", "Clinic Staff", "Admin")
+    )
+    if not is_staff:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access forbidden: Clinic Staff or Administrator authorization required.",
+        )
+    return current_user
+

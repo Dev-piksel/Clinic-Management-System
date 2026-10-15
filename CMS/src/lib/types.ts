@@ -90,3 +90,54 @@ export interface QueueItem {
 	status: 'Waiting' | 'In Consultation' | 'Under Observation' | 'Completed';
 	actionText: 'Start visit' | 'Open' | 'Open visit';
 }
+
+export interface AuditLogItem {
+	id: string;
+	timestamp: string;
+	actorId: string;
+	actorName: string;
+	actorRole: string;
+	action: string;
+	category: string;
+	targetUserId?: string;
+	targetUserName?: string;
+	targetUserRole?: string;
+	details: string;
+	metadataJson?: string;
+}
+
+export interface AdminCreateUserPayload {
+	student_id: string;
+	email: string;
+	name: string;
+	password: string;
+	role: string;
+	category?: 'student' | 'staff';
+	is_crrmu_member?: boolean;
+	program_strand?: string;
+	year_section?: string;
+	contact_number?: string;
+	emergency_person?: string;
+	emergency_relationship?: string;
+	emergency_contact?: string;
+	preferred_contact_method?: string;
+	status?: 'pending' | 'approved' | 'rejected';
+}
+
+export interface AdminUpdateUserPayload {
+	name?: string;
+	email?: string;
+	student_id?: string;
+	role?: string;
+	category?: 'student' | 'staff';
+	is_crrmu_member?: boolean;
+	program_strand?: string;
+	year_section?: string;
+	contact_number?: string;
+	emergency_person?: string;
+	emergency_relationship?: string;
+	emergency_contact?: string;
+	preferred_contact_method?: string;
+	status?: 'pending' | 'approved' | 'rejected';
+}
+

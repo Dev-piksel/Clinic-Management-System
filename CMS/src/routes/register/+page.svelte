@@ -32,6 +32,8 @@
 	let registrationSuccess = $state(false);
 	let registeredName = $state('');
 	let registeredId = $state('');
+	let registeredCategory = $state<'student' | 'staff'>('student');
+	let staffPasskey = $state('');
 
 	onMount(async () => {
 		const health = await checkBackendHealth();
@@ -50,6 +52,11 @@
 
 		if (role === 'Student' && !/^\d+$/.test(studentId.trim())) {
 			errorMessage = 'Student ID must contain numbers only.';
+			return;
+		}
+
+		if (role === 'Staff' && !staffPasskey.trim()) {
+			errorMessage = 'Please provide the Clinic Staff Authorization Passkey to register staff.';
 			return;
 		}
 
@@ -105,7 +112,8 @@
 			emergency_relationship: emergencyRelationship.trim(),
 			emergency_contact: emergencyContact.trim(),
 			preferred_contact_method: preferredContactMethod,
-			terms_accepted: true
+			terms_accepted: true,
+			staff_passkey: role === 'Staff' ? staffPasskey.trim() : undefined
 		};
 
 		try {
@@ -113,6 +121,7 @@
 			const authRes = await registerWithApi(payload);
 			registeredName = authRes.user.name;
 			registeredId = authRes.user.studentId;
+			registeredCategory = (authRes.user.category as 'student' | 'staff') || (role === 'Staff' ? 'staff' : 'student');
 			registrationSuccess = true;
 		} catch (err: any) {
 			if (err?.message && (err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
@@ -245,25 +254,37 @@
 						</svg>
 					</div>
 
-					<div>
-						<span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200 mb-2">
-							Pending Administrator Approval
-						</span>
-						<h4 class="text-xl font-bold text-gray-900">Registration Submitted!</h4>
-						<p class="text-xs sm:text-sm text-gray-600 mt-2 leading-relaxed max-w-md mx-auto">
-							Thank you, <strong>{registeredName}</strong> ({registeredId}). Your account has been saved. To protect school clinic privacy, an administrator or nurse will review and approve your account before you can sign in.
-						</p>
-					</div>
+					{#if registeredCategory === 'staff'}
+						<div>
+							<span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 mb-2">
+								Clinic Staff Authorized & Approved
+							</span>
+							<h4 class="text-xl font-bold text-gray-900">Staff Account Created!</h4>
+							<p class="text-xs sm:text-sm text-gray-600 mt-2 leading-relaxed max-w-md mx-auto">
+								Welcome, <strong>{registeredName}</strong> ({registeredId}). Your staff account has been authorized. You can now sign in to access patient approvals and clinic management.
+							</p>
+						</div>
+					{:else}
+						<div>
+							<span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200 mb-2">
+								Pending Administrator Approval
+							</span>
+							<h4 class="text-xl font-bold text-gray-900">Registration Submitted!</h4>
+							<p class="text-xs sm:text-sm text-gray-600 mt-2 leading-relaxed max-w-md mx-auto">
+								Thank you, <strong>{registeredName}</strong> ({registeredId}). Your student account has been saved. To protect school clinic privacy, a clinic administrator will review and approve your account before you can sign in.
+							</p>
+						</div>
 
-					<div class="p-3.5 bg-white rounded-2xl border border-gray-200/80 text-left text-xs text-gray-600 space-y-1">
-						<p class="font-semibold text-gray-800 flex items-center gap-1.5">
-							<svg class="w-4 h-4 text-[#1b522f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-							</svg>
-							What happens next?
-						</p>
-						<p>Clinic staff can approve your account from the <strong>User Approvals</strong> portal. Once approved, you can immediately log in with your credentials.</p>
-					</div>
+						<div class="p-3.5 bg-white rounded-2xl border border-gray-200/80 text-left text-xs text-gray-600 space-y-1">
+							<p class="font-semibold text-gray-800 flex items-center gap-1.5">
+								<svg class="w-4 h-4 text-[#1b522f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+								</svg>
+								What happens next?
+							</p>
+							<p>Clinic staff can approve your account from the <strong>User Approvals</strong> portal. Once approved, you can immediately log in with your credentials.</p>
+						</div>
+					{/if}
 
 					<div class="pt-2">
 						<a
@@ -312,6 +333,34 @@
 							</button>
 						</div>
 					</div>
+
+					<!-- Staff Authorization Passkey Alert & Input (When Staff Selected) -->
+					{#if role === 'Staff'}
+						<div class="p-3.5 bg-amber-50/90 border border-amber-200/90 rounded-2xl space-y-2.5 animate-fade-in">
+							<div class="flex items-center space-x-2 text-amber-900 text-xs font-bold">
+								<svg class="w-4 h-4 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+								</svg>
+								<span>Staff Authorization Passkey Required</span>
+							</div>
+							<p class="text-[11px] text-amber-800 leading-relaxed">
+								Only authorized school clinic personnel may create staff accounts. Enter your clinic security passkey below (default: <code class="px-1.5 py-0.5 bg-amber-100 rounded font-mono text-amber-900 font-bold">CELTECH-CLINIC-2026</code>).
+							</p>
+							<div>
+								<label for="staff-passkey" class="block text-xs font-semibold text-amber-900 mb-1">
+									Clinic Staff Passkey *
+								</label>
+								<input
+									id="staff-passkey"
+									type="password"
+									bind:value={staffPasskey}
+									placeholder="Enter clinic staff passkey"
+									required={role === 'Staff'}
+									class="w-full px-3.5 py-2.5 bg-white border border-amber-300 rounded-xl text-xs sm:text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 shadow-2xs transition-colors"
+								/>
+							</div>
+						</div>
+					{/if}
 
 					<!-- Section 1: Academic / Personal Info -->
 					<div class="border-b border-gray-100 pb-4 space-y-3.5">

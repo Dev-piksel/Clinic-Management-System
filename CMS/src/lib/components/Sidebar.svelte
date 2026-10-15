@@ -80,12 +80,18 @@
 		},
 		{
 			id: 'admin-users',
-			label: 'User Approvals',
+			label: 'User Management',
 			href: '/admin/users',
 			icon: 'users-check',
 			get badgeCount() {
 				return clinicStore.pendingUsersCount;
 			}
+		},
+		{
+			id: 'admin-audit',
+			label: 'Audit Logs',
+			href: '/admin/audit-logs',
+			icon: 'history'
 		},
 		{
 			id: 'clinic-visits',
@@ -226,6 +232,10 @@
 						{:else if item.icon === 'users-check'}
 							<svg class="w-5 h-5 shrink-0 {isActive ? 'text-[#1b522f]' : 'text-gray-400'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+							</svg>
+						{:else if item.icon === 'history'}
+							<svg class="w-5 h-5 shrink-0 {isActive ? 'text-[#1b522f]' : 'text-gray-400'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
 							</svg>
 						{/if}
 						<span class="truncate">{item.label}</span>
